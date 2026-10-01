@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cosmos Mart Helper</title>
+<style>
+  :root {
+    --bg:#f6f7f9; --card:#fff; --ink:#1b1f24; --muted:#5b6672; --line:#dfe3e8;
+    --accent:#1f5f8b; --accent-ink:#fff; --ok:#1e7f4f; --warn:#b26a00; --bad:#b3261e;
+    --code:#eef1f4; --cosmos:#5a2ca0; --projects:#0b6e4f; --laptop:#7a4a00;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --bg:#101316; --card:#181c21; --ink:#e7eaee; --muted:#9aa4af; --line:#2a3139;
+    --accent:#6fb3e0; --accent-ink:#0b1620; --ok:#5ccb8f; --warn:#f0b35a; --bad:#ff7b72;
+    --code:#0d1117; --cosmos:#b89cf0; --projects:#6fd3a8; --laptop:#e2b36a;
+  }}
+  :root[data-theme="dark"] {
+    --bg:#101316; --card:#181c21; --ink:#e7eaee; --muted:#9aa4af; --line:#2a3139;
+    --accent:#6fb3e0; --accent-ink:#0b1620; --ok:#5ccb8f; --warn:#f0b35a; --bad:#ff7b72;
+    --code:#0d1117; --cosmos:#b89cf0; --projects:#6fd3a8; --laptop:#e2b36a;
+  }
+  * { box-sizing:border-box }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 -apple-system,"Segoe UI",Helvetica,Arial,sans-serif }
+  header { padding:20px 16px 8px; max-width:900px; margin:0 auto }
+  h1 { font-size:22px; margin:0 0 4px } h1 small { color:var(--muted); font-weight:400; font-size:14px; display:block }
+  .progress { height:6px; background:var(--line); border-radius:3px; margin:12px 0 4px; overflow:hidden }
+  .progress i { display:block; height:100%; background:var(--ok); width:0; transition:width .3s }
+  .pct { color:var(--muted); font-size:13px }
+  main { max-width:900px; margin:0 auto; padding:0 16px 80px }
+  .rule { background:var(--card); border:1px solid var(--line); border-left:4px solid var(--bad); padding:10px 14px; border-radius:6px; margin:12px 0 }
+  details.part { background:var(--card); border:1px solid var(--line); border-radius:8px; margin:14px 0; }
+  details.part > summary { cursor:pointer; padding:14px 16px; font-weight:600; font-size:17px; list-style:none; display:flex; justify-content:space-between; align-items:center }
+  details.part > summary::-webkit-details-marker { display:none }
+  details.part > summary .count { color:var(--muted); font-weight:400; font-size:13px }
+  .step { border-top:1px solid var(--line); padding:12px 16px 14px; display:grid; grid-template-columns:28px 1fr; gap:10px }
+  .step.done { opacity:.6 }
+  .step input[type=checkbox] { width:20px; height:20px; margin-top:3px; accent-color:var(--ok) }
+  .step h3 { margin:0 0 4px; font-size:15px; display:flex; gap:8px; align-items:center; flex-wrap:wrap }
+  .where { font-size:11px; padding:1px 7px; border-radius:10px; border:1px solid currentColor; font-weight:600; letter-spacing:.02em }
+  .where.laptop { color:var(--laptop) } .where.cosmos { color:var(--cosmos) } .where.projects { color:var(--projects) } .where.dsvm { color:var(--accent) }
+  .step p { margin:4px 0 } .step ol, .step ul { margin:4px 0; padding-left:20px }
+  pre { background:var(--code); border:1px solid var(--line); border-radius:6px; padding:10px 12px; overflow:auto; position:relative; margin:8px 0; font:13px/1.45 Menlo,Consolas,monospace; white-space:pre-wrap }
+  pre button { position:absolute; top:6px; right:6px; font-size:11px; padding:2px 8px; border-radius:4px; border:1px solid var(--line); background:var(--card); color:var(--ink); cursor:pointer }
+  .done-when { color:var(--ok); font-size:13px; margin-top:6px } .done-when::before { content:"Done when: "; font-weight:600 }
+  .stop { background:var(--card); border:2px solid var(--warn); border-radius:8px; padding:12px 16px; margin:12px 0; font-weight:600 }
+  label.f { display:block; margin:10px 0 2px; font-weight:600; font-size:13px }
+  label.f small { color:var(--muted); font-weight:400 }
+  input[type=text], textarea, select { width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink); font:inherit }
+  textarea { min-height:70px; font-family:Menlo,Consolas,monospace; font-size:13px }
+  button.primary { background:var(--accent); color:var(--accent-ink); border:0; border-radius:6px; padding:9px 14px; font:inherit; font-weight:600; cursor:pointer; margin:8px 6px 0 0 }
+  button.ghost { background:transparent; color:var(--accent); border:1px solid var(--accent); border-radius:6px; padding:8px 12px; font:inherit; cursor:pointer; margin:8px 6px 0 0 }
+  .out { margin-top:10px } .out textarea { min-height:220px }
+  .decoder .hit { border-left:4px solid var(--warn); padding:8px 12px; margin:8px 0; background:var(--code); border-radius:4px }
+  .decoder .hit b { display:block } .decoder .none { color:var(--muted) }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:0 14px } @media (max-width:640px) { .grid2 { grid-template-columns:1fr } }
+  footer { color:var(--muted); font-size:12px; text-align:center; padding:20px }
+  .toolbar { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px }
+</style>
+</head>
+<body>
+<header>
+  <h1>Cosmos mart helper <small>Krishna's checklist, with copy buttons, a handoff-file writer, and an error decoder. Everything you type stays in this browser.</small></h1>
+  <div class="progress"><i id="bar"></i></div>
+  <div class="pct"><span id="pct">0</span>% of steps ticked · <a href="#" id="reset" style="color:var(--muted)">reset</a></div>
+</header>
+<main>
+<div class="rule" style="border-left-color:var(--accent)">
+  <b>Downloads.</b>
+  <a href="bundle/1_COSMOS_build.sql" download>1_COSMOS_build.sql</a> ·
+  <a href="bundle/2_PROJECTS_transfer_and_check.sql" download>2_PROJECTS_transfer_and_check.sql</a> ·
+  <a href="bundle/README.md">bundle README</a> ·
+  <a href="sql/c00_preflight.sql" download>c00_preflight.sql</a> ·
+  <a href="sql/RUN_ORDER.md">run order</a> ·
+  <a href="START_HERE_KRISHNA.md">full checklist</a> ·
+  <a href="MART_CONTRACT.md">mart contract</a> ·
+  <a href="AI_PROMPT.md">AI prompt</a> ·
+  <a href="https://github.com/Jonah-Keller/cosmos-gbm-validation">the repository (collaborators)</a>
+</div>
+
+<div class="rule">
+  <b>The one rule.</b> Table names, column names, row counts, byte sizes and error text may be pasted anywhere — here, GitHub, a text.
+  <b>A row of patient data, a patient key, a date from a record, an organisation's SourceKey, a count under 11, a screenshot or photo of the DSVM — never.</b>
+</div>
+
+<!-- ============================ PART A ============================ -->
+<details class="part" open id="partA"><summary>Part A — get the code <span class="count"></span></summary>
+
+<div class="step" data-id="A1">
+  <input type="checkbox"><div>
+  <h3>A1 · Clone on your laptop <span class="where laptop">LAPTOP</span></h3>
+  <pre><button>copy</button>git clone https://github.com/Jonah-Keller/cosmos-gbm-validation.git
+cd cosmos-gbm-validation
+git checkout -b krishna/round-1</pre>
+  <p>If the clone is refused, you have not accepted the GitHub invitation yet — check your email.</p>
+  <div class="done-when">a folder with <code>sql/</code>, <code>docs/</code>, <code>handoff/</code>; <code>git branch</code> shows <code>krishna/round-1</code>.</div>
+</div></div>
+
+<div class="step" data-id="A2">
+  <input type="checkbox"><div>
+  <h3>A2 · Carry the code into the DSVM <span class="where dsvm">DSVM</span></h3>
+  <ol>
+    <li>On the laptop, open <code>deploy/paste_into_dsvm.ps1</code> in a text editor. Select all, copy.</li>
+    <li>Cosmos Portal → project <b>D237BA6</b> → Data Science → launch the DSVM. Use the <b>full</b> Citrix client (gear → Account Settings → "Use full version"), or paste will not work.</li>
+    <li>In the DSVM: Notepad++ → new file → paste → save as <code>paste_into_dsvm.ps1</code> in the <b>Project Folder</b> the Data Science Navigator shows (a <code>Z:\</code> path).</li>
+    <li>DSVM PowerShell:</li>
+  </ol>
+  <pre><button>copy</button>Set-Location "Z:\Project D237BA6"
+.\paste_into_dsvm.ps1</pre>
+  <p>If it refuses to run scripts: <code>powershell -ExecutionPolicy Bypass -File .\paste_into_dsvm.ps1</code></p>
+  <div class="done-when">it prints <code>wrote N files into …\cosmos-gbm-validation</code> and no <code>HASH MISMATCH</code>.</div>
+</div></div>
+</details>
+
+<!-- ============================ PART B ============================ -->
+<details class="part" id="partB"><summary>Part B — Round 1: the catalogue (30 min) <span class="count"></span></summary>
+
+<div class="step" data-id="B1">
+  <input type="checkbox"><div>
+  <h3>B1 · Run c00 <span class="where cosmos">COSMOS · Cosmos_SneakPeek</span></h3>
+  <ol>
+    <li>DSVM desktop → SQL Server Management Studio → connect to server <b>COSMOS</b>.</li>
+    <li>File → Open → <code>…\cosmos-gbm-validation\sql\c00_preflight.sql</code>.</li>
+    <li>First line must read <code>USE Cosmos_SneakPeek;</code>. Press F5. Seconds.</li>
+  </ol>
+  <p>This reads the catalogue only — which tables and columns exist. No patient rows.</p>
+  <div class="done-when">four result grids appear with no red text in Messages.</div>
+</div></div>
+
+<div class="step" data-id="B2">
+  <input type="checkbox"><div>
+  <h3>B2 · Answer the four questions from the Data Dictionary <span class="where laptop">LAPTOP · Portal</span></h3>
+  <p>Nothing is copied out of the DSVM. Every name c00 showed is also in the Portal's <b>Data Dictionary</b> (laptop browser), which copies freely. Open each table, Columns section, tick <b>Available in Data Science</b>. Use what you saw in c00 as the cross-check.</p>
+  <div class="grid2">
+    <div><label class="f">CancerStagingFact — column holding the ICD-O <b>topography</b> (site) code <small>e.g. BodySiteOrCancerType_Code</small></label><input type="text" data-k="q_site" placeholder="column name"></div>
+    <div><label class="f">HistologyCode values look like <small>9440/3 or 9440?</small></label>
+      <select data-k="q_hist"><option value="">choose…</option><option>9440/3 — behaviour included</option><option>9440 — behaviour in BehaviorCode</option><option>unclear</option></select></div>
+    <div><label class="f">BMI lives on <small>and the column name</small></label><input type="text" data-k="q_bmi" placeholder="VitalsFact.BodyMassIndex  /  FlowsheetValueFact + FlowsheetRowDim …"></div>
+    <div><label class="f">MedicationOrderComponentFact — start-date column, quantity column, has PatientDurableKey?</label><input type="text" data-k="q_moc" placeholder="StartDateKey, Quantity, yes"></div>
+    <div><label class="f">PatientDim — exact 2020 SVI socioeconomic percentile column</label><input type="text" data-k="q_svi" placeholder="column name"></div>
+    <div><label class="f">Tables from c00 result set 1 that were MISSING <small>blank if none</small></label><input type="text" data-k="q_missing" placeholder="none"></div>
+  </div>
+  <label class="f">Column list for the five unconfirmed tables <small>paste from the Data Dictionary — names and types; one table per block</small></label>
+  <textarea data-k="q_cols" placeholder="CancerStagingFact: PatientDurableKey (bigint), DiagnosisKey (int), Histology (nvarchar), HistologyCode (nvarchar), BehaviorCode …&#10;VitalsFact: …"></textarea>
+  <label class="f">Vocabulary labels (c00 result set 3) <small>the distinct Type values, with counts if shown</small></label>
+  <textarea data-k="q_vocab" placeholder="DiagnosisTerminologyDim.Type: ICD-10-CM, ICD-9-CM, SNOMED CT, Custom&#10;MedicationCodeDim.Type: RxNorm, NDC, ATC"></textarea>
+  <label class="f">Partition keys (c00 result set 4)</label>
+  <textarea data-k="q_part" placeholder="DiagnosisEventFact: StartDateKey&#10;EncounterFact: DateKey …"></textarea>
+  <label class="f">Surprises <small>anything that did not match sql/schema_map.csv; "nothing" is fine</small></label>
+  <textarea data-k="q_surp"></textarea>
+  <div class="toolbar"><button class="primary" id="gen1">Write handoff/round_1_preflight.md</button><button class="ghost" id="dl1">download .md</button><button class="ghost" id="cp1">copy</button></div>
+  <div class="out"><textarea id="out1" readonly placeholder="the finished file appears here — paste it over handoff/round_1_preflight.md in your laptop clone"></textarea></div>
+</div></div>
+
+<div class="step" data-id="B3">
+  <input type="checkbox"><div>
+  <h3>B3 · schema_map.csv, commit, pull request <span class="where laptop">LAPTOP</span></h3>
+  <ol>
+    <li>Paste the generated text over <code>handoff/round_1_preflight.md</code>.</li>
+    <li>Open <code>sql/schema_map.csv</code>. Every row whose <code>status</code> is <code>UNCONFIRMED</code>: set to <code>confirmed</code>, and correct the object/column if the Dictionary disagreed.</li>
+  </ol>
+  <pre><button>copy</button>git add handoff/round_1_preflight.md sql/schema_map.csv
+git commit -m "round 1: c00 preflight, confirmed against the Data Dictionary"
+git push -u origin krishna/round-1</pre>
+  <p>GitHub shows <b>Compare &amp; pull request</b>. Title: <code>Round 1 — preflight</code>. Create.</p>
+  <div class="done-when">the pull request exists.</div>
+</div></div>
+
+<div class="stop">⏸ Stop here and tell Jonah. The SQL is regenerated from what you confirmed, usually the same day. Then:
+  <pre><button>copy</button>git checkout main && git pull</pre>
+  and repeat A2 with the fresh <code>deploy/paste_into_dsvm.ps1</code> (it overwrites in place).</div>
+</details>
+
+<!-- ============================ PART C ============================ -->
+<details class="part" id="partC"><summary>Part C — Rounds 2–3: build on the 1% sample (1–2 h) <span class="count"></span></summary>
+<p style="padding:10px 16px 0; color:var(--muted)">One SSMS window for all of C1–C3. The <code>##</code> tables live only as long as that window does.</p>
+
+<div class="step" data-id="C1">
+  <input type="checkbox"><div>
+  <h3>C1 · Concept keys <span class="where cosmos">COSMOS · Cosmos_SneakPeek</span></h3>
+  <p>Open and execute <code>sql/c01_concept_keys.sql</code>. The <b>last</b> result set is the check: concepts that matched <b>zero</b> keys.</p>
+  <label class="f">Concepts with zero keys <small>should be empty; if not, paste the grid</small></label>
+  <textarea data-k="c1_zero" placeholder="(empty)"></textarea>
+  <div class="done-when">c01 finished; whatever the last grid showed is recorded above.</div>
+</div></div>
+
+<div class="step" data-id="C2">
+  <input type="checkbox"><div>
+  <h3>C2 · The marts <span class="where cosmos">COSMOS · Cosmos_SneakPeek</span></h3>
+  <p>Open and execute <code>sql/c02x_marts_expansive.sql</code>. Each section is its own batch — if one errors the rest still run. The last two result sets:</p>
+  <label class="f">Row counts per mart <small>the grid with mart / rows_ / note — paste it</small></label>
+  <textarea data-k="c2_counts" placeholder="mart	rows_	note&#10;universe	48213	&#10;patient	…"></textarea>
+  <label class="f">cosmos_server <small>the single string in the final grid — C3 needs it</small></label>
+  <input type="text" data-k="c2_server" placeholder="et4003vndsql031">
+  <label class="f">Errors for any NOT BUILT section <small>Messages tab, red text only</small></label>
+  <textarea data-k="c2_err"></textarea>
+  <div class="done-when">counts recorded; <code>cosmos_server</code> recorded.</div>
+</div></div>
+
+<div class="step" data-id="C3">
+  <input type="checkbox"><div>
+  <h3>C3 · Transfer to the project database <span class="where projects">PROJECTS · ProjectD237BA6</span></h3>
+  <ol>
+    <li>Same SSMS window → New Query → open <code>sql/c03x_transfer_expansive.sql</code>.</li>
+    <li>Change connection (plug-and-pencil icon) to server <b>PROJECTS</b>. Leave <code>USE ProjectD237BA6;</code>.</li>
+    <li>Ctrl+H: replace <code>$(COSMOS_SERVER)</code> with <b><span id="srv">your cosmos_server string</span></b>. Replace All.</li>
+    <li>Execute. About a minute per GB.</li>
+    <li>Open and execute <code>sql/c04_check_marts.sql</code> (still PROJECTS). Result set 2 must say <code>OK</code> per built table. Paste it below.</li>
+    <li>Then run, still on PROJECTS:</li>
+  </ol>
+  <label class="f">c04 verdict per table <small>result set 2</small></label>
+  <textarea data-k="c3_c04" placeholder="tbl	pass_	missing_required	wrong_type	table_verdict"></textarea>
+  <pre><button>copy</button>EXEC sp_spaceused 'dbo.mart_dx';
+EXEC sp_spaceused 'dbo.mart_enc';
+EXEC sp_spaceused 'dbo.mart_med';
+EXEC sp_spaceused 'dbo.mart_proc';
+EXEC sp_spaceused 'dbo.mart_cancer_staging';
+EXEC sp_spaceused 'dbo.mart_patient';</pre>
+  <label class="f">Row counts on PROJECTS <small>the last grid of c03x — must match C2</small></label>
+  <textarea data-k="c3_counts"></textarea>
+  <label class="f">sp_spaceused output <small>name, rows, reserved, data — one line per table</small></label>
+  <textarea data-k="c3_space" placeholder="mart_dx	1,204,331	184,392 KB	171,208 KB …"></textarea>
+  <label class="f">Surprises</label>
+  <textarea data-k="c3_surp"></textarea>
+  <div class="toolbar"><button class="primary" id="gen3">Write handoff/round_3_sneakpeek_counts.md</button><button class="ghost" id="dl3">download .md</button><button class="ghost" id="cp3">copy</button></div>
+  <div class="out"><textarea id="out3" readonly></textarea></div>
+  <div class="done-when">counts on PROJECTS equal counts on COSMOS; sizes recorded.</div>
+</div></div>
+
+<div class="step" data-id="C4">
+  <input type="checkbox"><div>
+  <h3>C4 · Commit and pull request <span class="where laptop">LAPTOP</span></h3>
+  <pre><button>copy</button>git checkout main && git pull && git checkout -b krishna/round-3
+# paste the generated text over handoff/round_3_sneakpeek_counts.md (and round_2 if c01 had zero-key concepts)
+git add handoff/
+git commit -m "round 3: SneakPeek marts, counts and sizes"
+git push -u origin krishna/round-3</pre>
+  <p>Pull request titled <code>Round 3 — SneakPeek marts</code>.</p>
+  <div class="done-when">the pull request exists.</div>
+</div></div>
+
+<div class="stop">⏸ Stop and tell Jonah. Sizes × 100 are checked against the 20 GB project database; either "go" or the spec is trimmed first. Do not run anything on <code>Cosmos</code> until then.</div>
+</details>
+
+<!-- ============================ PART D ============================ -->
+<details class="part" id="partD"><summary>Part D — Round 4: the real thing <span class="count"></span></summary>
+
+<div class="step" data-id="D1">
+  <input type="checkbox"><div>
+  <h3>D1 · Fresh code <span class="where laptop">LAPTOP → DSVM</span></h3>
+  <pre><button>copy</button>git checkout main && git pull</pre>
+  <p>Repeat A2 with the new <code>deploy/paste_into_dsvm.ps1</code>.</p>
+</div></div>
+
+<div class="step" data-id="D2">
+  <input type="checkbox"><div>
+  <h3>D2 · Build and transfer, one sitting <span class="where cosmos">COSMOS · Cosmos</span> → <span class="where projects">PROJECTS</span></h3>
+  <ol>
+    <li>In SSMS on COSMOS, open <code>c01</code> and <code>c02x</code>; change the first line of each to <code>USE Cosmos;</code>.</li>
+    <li>Run c01 → c02x → (switch to PROJECTS, Ctrl+H the server string) c03x. <b>One window. Do not close SSMS between them. Do not disconnect Citrix for long.</b></li>
+    <li>Before closing anything, on COSMOS: <code>SELECT @@ServerName;</code> and note the Portal's static-copy date for this snapshot.</li>
+    <li>Run the <code>DROP TABLE ##…</code> lines at the bottom of c03x on COSMOS.</li>
+  </ol>
+  <label class="f">Snapshot date <small>the Portal's static-copy date, YYYY-MM-DD</small></label><input type="text" data-k="d_snap" placeholder="2026-09-15">
+  <label class="f">cosmos_server used</label><input type="text" data-k="d_server">
+  <label class="f">Final row counts in ProjectD237BA6</label><textarea data-k="d_counts"></textarea>
+  <label class="f">Surprises</label><textarea data-k="d_surp"></textarea>
+  <div class="toolbar"><button class="primary" id="gen4">Write handoff/round_4_full_build.md</button><button class="ghost" id="dl4">download .md</button><button class="ghost" id="cp4">copy</button></div>
+  <div class="out"><textarea id="out4" readonly></textarea></div>
+</div></div>
+
+<div class="step" data-id="D3">
+  <input type="checkbox"><div>
+  <h3>D3 · The auditable copy <span class="where dsvm">DSVM · Project GitLab</span></h3>
+  <p>Save <code>c01</code>, <code>c02x</code>, <code>c03x</code> <b>exactly as you ran them</b> into the project folder, and upload them to the Project GitLab (Data Science Navigator → GitLab → Launch Project GitLab Group → Upload file) with a commit message naming the snapshot date.</p>
+  <div class="done-when">the three files are in GitLab; note the commit hash in the handoff file.</div>
+</div></div>
+
+<div class="step" data-id="D4">
+  <input type="checkbox"><div>
+  <h3>D4 · Pull request <span class="where laptop">LAPTOP</span></h3>
+  <pre><button>copy</button>git checkout main && git pull && git checkout -b krishna/round-4
+git add handoff/round_4_full_build.md
+git commit -m "round 4: full build, snapshot and counts"
+git push -u origin krishna/round-4</pre>
+  <p>Title: <code>Round 4 — full build</code>. From here the analysis is Jonah's. You are done.</p>
+</div></div>
+</details>
+
+<!-- ============================ DECODER ============================ -->
+<details class="part decoder" id="partE"><summary>Something went wrong — paste the error</summary>
+<div style="padding:0 16px 16px">
+  <label class="f">Error text <small>the red lines from the Messages tab; never a data grid</small></label>
+  <textarea id="err" placeholder="Msg 207, Level 16, State 1, Line 12&#10;Invalid column name 'HistologyCode'."></textarea>
+  <div id="errout" class="none" style="margin-top:8px">Advice appears here.</div>
+</div>
+</details>
+
+</main>
+<footer>Cosmos mart helper · state lives in this browser's localStorage only · nothing is sent anywhere</footer>
+
+<script>
+(function () {
+  const KEY = 'cosmos-helper-v1';
+  let S = {};
+  try { S = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { S = {}; }
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+  const $ = (s, r) => (r || document).querySelector(s), $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+
+  // checkboxes
+  const steps = $$('.step');
+  steps.forEach(st => {
+    const cb = $('input[type=checkbox]', st), id = st.dataset.id;
+    cb.checked = !!S['done_' + id]; st.classList.toggle('done', cb.checked);
+    cb.addEventListener('change', () => { S['done_' + id] = cb.checked; st.classList.toggle('done', cb.checked); save(); progress(); });
+  });
+  function progress() {
+    const n = steps.length, d = steps.filter(s => $('input[type=checkbox]', s).checked).length;
+    $('#bar').style.width = (100 * d / n) + '%'; $('#pct').textContent = Math.round(100 * d / n);
+    $$('details.part').forEach(p => { const ss = $$('.step', p); if (!ss.length) return;
+      $('.count', p).textContent = ss.filter(s => $('input[type=checkbox]', s).checked).length + ' / ' + ss.length; });
+  }
+  // fields
+  $$('[data-k]').forEach(el => {
+    if (S[el.dataset.k] != null) el.value = S[el.dataset.k];
+    el.addEventListener('input', () => { S[el.dataset.k] = el.value; save(); if (el.dataset.k === 'c2_server') srv(); });
+  });
+  function srv() { $('#srv').textContent = (S.c2_server || '').trim() || 'your cosmos_server string'; }
+  srv();
+  // copy buttons on <pre>
+  $$('pre button').forEach(b => b.addEventListener('click', () => {
+    const t = b.parentNode.textContent.replace(/^copy/, '');
+    navigator.clipboard.writeText(t.trim()).then(() => { b.textContent = 'copied'; setTimeout(() => b.textContent = 'copy', 1200); });
+  }));
+  $('#reset').addEventListener('click', e => { e.preventDefault(); if (confirm('Clear every tick and every field?')) { S = {}; save(); location.reload(); } });
+
+  const v = k => (S[k] || '').trim() || '—';
+  const today = () => new Date().toISOString().slice(0, 10);
+  function r1() {
+    return `# Round 1 — preflight on the COSMOS server
+
+**Who:** Krishna · **Date:** ${today()} · **Script:** \`sql/c00_preflight.sql\` on \`Cosmos_SneakPeek\`
+Answers taken from the Portal Data Dictionary and cross-checked against c00 inside the DSVM. Catalogue metadata only.
+
+## 1 · Objects present
+
+Missing from result set 1: ${v('q_missing') === '—' ? 'none' : v('q_missing')}
+
+## 2 · Columns of the unconfirmed objects
+
+${v('q_cols')}
+
+## 3 · Vocabulary labels
+
+${v('q_vocab')}
+
+## 4 · Partition keys
+
+${v('q_part')}
+
+## 5 · The four answers we need in words
+
+| Question | Answer |
+|---|---|
+| Which column on \`CancerStagingFact\` carries the ICD-O **topography** (site) code? | ${v('q_site')} |
+| Does \`HistologyCode\` include the \`/3\`, or is behaviour in \`BehaviorCode\`? | ${v('q_hist')} |
+| Is BMI on \`VitalsFact\`, or on \`FlowsheetValueFact\` + \`FlowsheetRowDim\`? Which column? | ${v('q_bmi')} |
+| On \`MedicationOrderComponentFact\`: start-date column, quantity column, has \`PatientDurableKey\`? | ${v('q_moc')} |
+| The exact name of the 2020 SVI socioeconomic percentile column on \`PatientDim\` | ${v('q_svi')} |
+
+## 6 · Surprises
+
+${v('q_surp') === '—' ? 'nothing' : v('q_surp')}
+
+## Done when
+
+- [x] every \`UNCONFIRMED\` row in \`sql/schema_map.csv\` is edited to \`confirmed\` (or corrected) in the same commit
+- [ ] \`python sql/gen_sql.py\` prints no "STILL GUESSED" lines (Jonah checks)
+- [x] pull request opened from \`krishna/round-1\`
+`;
+  }
+  function r3() {
+    return `# Round 3 — the marts on Cosmos_SneakPeek
+
+**Who:** Krishna · **Date:** ${today()} · **Scripts:** \`c01_concept_keys.sql\`, \`c02x_marts_expansive.sql\` on COSMOS/\`Cosmos_SneakPeek\`; \`c03x_transfer_expansive.sql\` on PROJECTS/\`ProjectD237BA6\`
+**cosmos_server:** \`${v('c2_server')}\`
+
+## c01 — concepts with zero keys
+
+${v('c1_zero') === '—' ? '(empty — every concept resolved)' : v('c1_zero')}
+
+## c02x — row counts on COSMOS
+
+\`\`\`
+${v('c2_counts')}
+\`\`\`
+
+Errors for NOT BUILT sections:
+
+\`\`\`
+${v('c2_err') === '—' ? '(none)' : v('c2_err')}
+\`\`\`
+
+## c04 — contract check per table
+
+\`\`\`
+${v('c3_c04')}
+\`\`\`
+
+## c03x — row counts on PROJECTS (must match)
+
+\`\`\`
+${v('c3_counts')}
+\`\`\`
+
+## sp_spaceused on PROJECTS (× ~100 for the full build, against 20 GB)
+
+\`\`\`
+${v('c3_space')}
+\`\`\`
+
+## Surprises
+
+${v('c3_surp') === '—' ? 'nothing' : v('c3_surp')}
+
+## Done when
+
+- [x] output above, aggregates only
+- [x] pull request opened from \`krishna/round-3\`
+`;
+  }
+  function r4() {
+    return `# Round 4 — the full build and transfer
+
+**Who:** Krishna · **Date:** ${today()} · **Snapshot:** \`${v('d_snap')}\` · **cosmos_server:** \`${v('d_server')}\`
+**Scripts:** \`c01\` + \`c02x\` on COSMOS/\`Cosmos\`, \`c03x\` on PROJECTS/\`ProjectD237BA6\`, one session. SQL as run committed to the Project GitLab.
+
+## Final row counts in ProjectD237BA6
+
+\`\`\`
+${v('d_counts')}
+\`\`\`
+
+## Surprises
+
+${v('d_surp') === '—' ? 'nothing' : v('d_surp')}
+
+## Done when
+
+- [x] output above, aggregates only
+- [x] \`##\` temp tables dropped on COSMOS
+- [x] SQL as run uploaded to the Project GitLab
+- [x] pull request opened from \`krishna/round-4\`
+`;
+  }
+  function wire(n, fn, fname) {
+    const out = $('#out' + n);
+    $('#gen' + n).addEventListener('click', () => { out.value = fn(); });
+    $('#cp' + n).addEventListener('click', () => { if (!out.value) out.value = fn(); navigator.clipboard.writeText(out.value); });
+    $('#dl' + n).addEventListener('click', () => { if (!out.value) out.value = fn();
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([out.value], { type: 'text/markdown' })); a.download = fname; a.click(); });
+  }
+  wire(1, r1, 'round_1_preflight.md'); wire(3, r3, 'round_3_sneakpeek_counts.md'); wire(4, r4, 'round_4_full_build.md');
+
+  // error decoder
+  const RULES = [
+    [/invalid column name/i, 'A column in the SQL does not exist under that name.', 'Expected in c02x sections 7 (VitalsFact) and 8 (CancerStagingFact) before Round 1 is merged — the other sections still built. Note the column name under Surprises; the fix is a schema_map.csv edit, not yours to make tonight. If it is in any other section, paste the full message into a GitHub issue with the blocked label.'],
+    [/database .* does not exist/i, 'Wrong server.', 'You are connected to COSMOS but running a PROJECTS script (or the reverse). Plug-and-pencil icon on the SSMS toolbar → change the connection → run again.'],
+    [/could not find .*##|invalid object name '##/i, 'The global temp table is gone or unreachable.', 'Either the SSMS window that built it was closed (rebuild with c02x and keep that window open), or $(COSMOS_SERVER) in c03x was not replaced with the cosmos_server string (Ctrl+H, Replace All).'],
+    [/tempdb|filegroup is full/i, 'Shared TempDB is full.', 'Stop. Do not retry. Tell Jonah — the universe is trimmed before this runs again.'],
+    [/openquery|linked server/i, 'OPENQUERY could not reach the COSMOS server by that name.', 'Check the cosmos_server string: it is the output of SELECT @@ServerName on COSMOS, in square brackets in c03x. It changes between sessions — re-run SELECT @@ServerName on COSMOS now and replace again.'],
+    [/hash mismatch/i, 'The paste was truncated.', 'Re-copy the whole of deploy/paste_into_dsvm.ps1 from the laptop and paste again. If it fails twice, tell Jonah; the script is split into parts.'],
+    [/permission|denied|login failed/i, 'Permissions.', 'If this is on COSMOS: your EDDI access may not be active yet — ask Penn\'s Cosmos Access Point Person. If on PROJECTS: you may not be on project D237BA6 yet — Jonah adds you in the Project Editor.'],
+    [/there is already an object named/i, 'A table of that name exists.', 'In c03x every CREATE is preceded by DROP TABLE IF EXISTS, so this means a different script (the narrow c03?) made it. Do not run c02/c03 alongside c02x/c03x. Drop the table and re-run c03x.'],
+    [/string or binary data would be truncated|arithmetic overflow/i, 'A value did not fit its column during INSERT.', 'Note which table. Paste the message into a GitHub issue; the column type in the staging table is widened and c03x regenerated.'],
+    [/zero keys|resolved to 0|no key/i, 'A concept in c01 found no matching code.', 'Not a blocker. Paste the concept names into the Round 2 handoff file and carry on.'],
+  ];
+  $('#err').addEventListener('input', e => {
+    const t = e.target.value, out = $('#errout');
+    if (!t.trim()) { out.className = 'none'; out.textContent = 'Advice appears here.'; return; }
+    const hits = RULES.filter(r => r[0].test(t));
+    out.className = '';
+    out.innerHTML = hits.length ? hits.map(h => `<div class="hit"><b>${h[1]}</b>${h[2]}</div>`).join('')
+      : `<div class="hit"><b>Not one of the known ones.</b> Paste the error text (only the error text) into a GitHub issue with the <code>blocked</code> label, and say which script and which section.</div>`;
+  });
+
+  progress();
+})();
+</script>
+</body>
+</html>

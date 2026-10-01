@@ -1,0 +1,77 @@
+table,column,type,required,grain_key,source,meaning
+mart_patient,patient_id,bigint,yes,yes,PatientDim.DurableKey,one row per patient in the universe; IsCurrent = 1
+mart_patient,sex,nvarchar,yes,,PatientDim.Sex,legal sex; universe is 'Male'
+mart_patient,race,nvarchar,yes,,PatientDim.FirstRace,CDC categories
+mart_patient,ethnicity,nvarchar,no,,PatientDim.Ethnicity,
+mart_patient,birth_year,int,yes,,YEAR(PatientDim.BirthDate),adult birth dates are truncated to 1 Jan so the year is exact
+mart_patient,death_date,date,no,,PatientDim.DeathDate,NULL when unknown or masked past the snapshot
+mart_patient,status,nvarchar,no,,PatientDim.Status,deceased flag as documented
+mart_patient,state,nvarchar,no,,PatientDim.StateOrProvinceAbbreviation,finest location in EDDI; mapped to census division downstream
+mart_patient,ruca,int,no,,PatientDim.PrimaryRUCA_X,rural-urban commuting area 1-10; 99 uncoded
+mart_patient,svi,float,no,,PatientDim.<2020 SVI socioeconomic percentile>,confirm the column name in c00
+mart_patient,source_combo_key,bigint,no,,PatientDim.SourceComboKey_X,used only to build mart_source; may be dropped after
+mart_dx,patient_id,bigint,yes,yes,DiagnosisEventFact.PatientDurableKey,one row per patient x code_type x code; NO code filter
+mart_dx,code_type,nvarchar,yes,yes,DiagnosisTerminologyDim.Type,'ICD-10-CM' or 'ICD-9-CM' (other types may be present; they are ignored)
+mart_dx,code,nvarchar,yes,yes,DiagnosisTerminologyDim.Value,with or without the dot; the analysis strips it
+mart_dx,first_datekey,int,yes,,MIN(DiagnosisEventFact.StartDateKey),YYYYMMDD; Count > 0 only
+mart_dx,last_datekey,int,yes,,MAX(DiagnosisEventFact.StartDateKey),YYYYMMDD
+mart_dx,n,bigint,yes,,COUNT(*),diagnosis events of any Type
+mart_dx,first_billing_datekey,int,no,,MIN(StartDateKey) WHERE Type LIKE 'Billing%',lets us run a billing-only outcome definition
+mart_dx,n_billing,bigint,no,,COUNT WHERE Type LIKE 'Billing%',
+mart_dx,n_problem_list,bigint,no,,COUNT WHERE Type = 'Problem List',
+mart_med,patient_id,bigint,yes,yes,MedicationOrderComponentFact.PatientDurableKey,one row per patient x rxnorm_code x mode x source_table
+mart_med,rxnorm_code,nvarchar,yes,yes,MedicationCodeDim.Code WHERE Type = 'RxNorm',ingredient-level RxNorm; NULL if the medication has no RxNorm mapping
+mart_med,generic_name,nvarchar,no,,MedicationDim.GenericName,
+mart_med,strength,nvarchar,no,,MedicationDim.Strength (confirm),finasteride 5 mg vs 1 mg; whatever string the dimension carries
+mart_med,mode,nvarchar,yes,yes,MedicationOrderFact.Mode,'Inpatient' / 'Outpatient' / 'Historical'; NULL for administration and dispense rows. KEEP Historical rows; the analysis excludes them
+mart_med,source_table,nvarchar,yes,yes,literal,'order' / 'administration' / 'dispense'
+mart_med,first_datekey,int,yes,,MIN(StartDateKey),YYYYMMDD
+mart_med,last_datekey,int,yes,,MAX(StartDateKey),YYYYMMDD
+mart_med,n,bigint,yes,,COUNT(*),records
+mart_med,n_days_supply,int,no,,SUM(MedicationDispenseFact.DaysSupply) (confirm column),dispense rows only; the duration question (R4 #7)
+mart_med,total_quantity,float,no,,SUM(Quantity),
+mart_med_qtr,patient_id,bigint,yes,yes,MedicationOrderComponentFact.PatientDurableKey,one row per patient x drug x calendar quarter; 5-ARIs and alpha-blockers only
+mart_med_qtr,rxnorm_code,nvarchar,yes,yes,MedicationCodeDim.Code,one of 228790 25025 77492 17300 49276 37798 720825 8629
+mart_med_qtr,quarter_start_datekey,int,yes,yes,derived from StartDateKey,YYYYMMDD of the first day of the quarter
+mart_med_qtr,n,bigint,yes,,COUNT(*),orders in the quarter; Mode <> 'Historical'
+mart_med_qtr,total_quantity,float,no,,SUM(Quantity),
+mart_proc,patient_id,bigint,yes,yes,ProcedureEventFact.PatientDurableKey,one row per patient x cpt_code x hcpcs_code; NO code filter
+mart_proc,cpt_code,nvarchar,yes,yes,ProcedureDim.CptCode,NULL when the procedure has no CPT
+mart_proc,hcpcs_code,nvarchar,yes,yes,ProcedureDim.HcpcsCode,NULL when no HCPCS
+mart_proc,code_set,nvarchar,no,,derived,'CPT' or 'HCPCS'
+mart_proc,first_datekey,int,yes,,MIN(StartDateKey),YYYYMMDD
+mart_proc,last_datekey,int,yes,,MAX(StartDateKey),YYYYMMDD
+mart_proc,n,bigint,yes,,COUNT(*),
+mart_enc,patient_id,bigint,yes,yes,EncounterFact.PatientDurableKey,one row per patient x encounter day x type (DISTINCT); or per month if reduced (MART_SPEC 6)
+mart_enc,datekey,int,yes,yes,EncounterFact.DateKey,YYYYMMDD; Count > 0
+mart_enc,enc_type,nvarchar,yes,yes,EncounterFact.Type,'Office Visit' / 'Hospital Encounter' / ...
+mart_enc,payer,nvarchar,no,,EncounterFact.PrimaryCoverageFinancialClass_X,answers the insurance question (R2 #5)
+mart_vitals,patient_id,bigint,yes,yes,VitalsFact.PatientDurableKey (confirm object),one row per measurement; or most recent per quarter if reduced
+mart_vitals,datekey,int,yes,yes,VitalsFact.DateKey,YYYYMMDD
+mart_vitals,bmi,float,yes,,VitalsFact.BodyMassIndex (confirm column),kg/m2; the analysis keeps 10-80
+mart_vitals,height,float,no,,VitalsFact.Height,
+mart_vitals,weight,float,no,,VitalsFact.Weight,
+mart_lab,patient_id,bigint,yes,yes,LabComponentResultFact.PatientDurableKey,one row per numeric result; nine LOINC codes only
+mart_lab,loinc_code,nvarchar,yes,yes,LabComponentDim.LoincCode,2857-1 19195-7 10886-0 2986-8 2991-8 2990-0 13967-5 10501-5 15067-2
+mart_lab,datekey,int,yes,yes,LabComponentResultFact.PrioritizedDateKey,YYYYMMDD
+mart_lab,value_numeric,float,yes,,LabComponentResultFact.NumericValue,free-text results are masked in EDDI and excluded
+mart_lab,unit,nvarchar,no,,LabComponentResultFact.Unit,
+mart_lab,abnormal_flag,bit,no,,LabComponentResultFact.Abnormal,
+mart_cancer_staging,patient_id,bigint,yes,yes,CancerStagingFact.PatientDurableKey,EVERY column of CancerStagingFact for the universe; the names below are the ones the analysis looks for
+mart_cancer_staging,datekey,int,yes,,CancerStagingFact.<diagnosis/staging DateKey> (confirm),YYYYMMDD; any of datekey / diagnosis_datekey / first_datekey is recognised
+mart_cancer_staging,bodysiteorcancertype_code,nvarchar,yes,,CancerStagingFact.<ICD-O topography column> (confirm),C71.x is the brain; any of bodysiteorcancertype_code / site_code / icdo_site_code / primarysite is recognised
+mart_cancer_staging,histologycode,nvarchar,yes,,CancerStagingFact.HistologyCode,'9440/3' or '9440' - either works if behaviorcode is present
+mart_cancer_staging,behaviorcode,nvarchar,no,,CancerStagingFact.BehaviorCode,'3' = malignant; needed only if histologycode lacks the '/3'
+mart_cancer_staging,histology,nvarchar,no,,CancerStagingFact.Histology,text
+mart_cancer_staging,histologicgradeg,nvarchar,no,,CancerStagingFact.HistologicGradeG,WHO grade
+mart_cancer_staging,diagnosticconfirmation,nvarchar,no,,CancerStagingFact.DiagnosticConfirmation,'Histology' etc.
+mart_cancer_staging,ajccstagegroup,nvarchar,no,,CancerStagingFact.AjccStageGroup,
+mart_source,patient_id,bigint,yes,yes,via PatientDim.SourceComboKey_X -> PatientSourceBridgeX,one row per patient
+mart_source,n_sources,int,yes,,COUNT(DISTINCT SourceKey),contributing organisations; identity never included
+mart_source,n_sources_greenlit,int,no,,COUNT WHERE SourceDim.UseInCosmosAnalytics = 1,
+mart_source,transfer_start_datekey,int,yes,,MIN(SourceDim.CompletedTransferStartDate_X) as YYYYMMDD,from when the record is complete
+mart_source,transfer_end_datekey,int,no,,MAX(SourceDim.CompletedTransferEndDate_X) as YYYYMMDD,
+mart_source,any_non_us_source,bit,no,,MAX(SourceCountry <> 'United States of America'),
+mart_active,patient_id,bigint,yes,yes,ActivePatientRegistryDataMartX.PatientDurableKey,one row per activity interval
+mart_active,start_datekey,int,yes,yes,ActivePatientRegistryDataMartX.StartDateKey,YYYYMMDD
+mart_active,end_datekey,int,yes,,ActivePatientRegistryDataMartX.EndDateKey,YYYYMMDD; two years after the last qualifying encounter
